@@ -4,23 +4,16 @@ import java.util.Map;
 import static java.util.Map.*;
 
 public class ModRM {
-    // immediate -> null
-    // direct (variable) -> from table
-    // others -> from table
-    public static ModRM from(String raw) {
-        raw = raw.trim();
-        String key = raw;
-        if(raw.charAt(0) == '[') {
-            key = raw.toUpperCase().replaceAll("\\s","");
-            String withType = replaceDispWithType(key);
-            if(withType != null) key = withType;
-        }
-        else try {
-            parseImmediateValue(key);
-            return null;
-        }
-        catch(NumberFormatException e) {
-            if(!table.containsKey(key.toUpperCase())) key = "direct";
+    public static ModRM from(final Argument argument) {
+        String rep = argument.toString();
+        String key = null;
+        switch (argument.getType()) {
+            case "M":
+                if(argument.isVariable()) key = "direct";
+                else key = replaceDispWithType(rep);
+                break;
+            case "R": key = rep; break;
+            case "I": return null;
         }
 
         return table.get(key);
@@ -28,13 +21,14 @@ public class ModRM {
 
     private static String replaceDispWithType(String key) {
         String[] elements = key.substring(1, key.length()-1).split("\\+");
+        String result = key;
         for(String element : elements)
             if(!table.containsKey(element)) {
                 int value = parseImmediateValue(element);
-                if(value > 255) return key.replace(element, "disp16");
-                else return key.replace(element, "disp8");
+                if(value > 255) result = key.replace(element, "disp16");
+                else result = key.replace(element, "disp8");
             }
-        return null;
+        return result;
     }
 
     private static int parseImmediateValue(String str) {
